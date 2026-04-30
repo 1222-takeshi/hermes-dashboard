@@ -1,0 +1,31 @@
+model:
+  provider: custom
+  default: gemma4:e4b
+  base_url: http://127.0.0.1:11436/v1
+  api_key: ""
+  context_length: 65536
+
+terminal:
+  backend: local
+  cwd: /workspace
+  timeout: 180
+  lifetime_seconds: 300
+
+approvals:
+  mode: manual
+
+security:
+  redact_secrets: true
+
+display:
+  compact: true
+  streaming: true
+  show_reasoning: false
+
+discord:
+  require_mention: true
+  allowed_channels: ""
+  free_response_channels: ""
+  auto_thread: true
+  reactions: true
+  server_actions: "list_guilds,list_channels,channel_info,fetch_messages,create_thread"

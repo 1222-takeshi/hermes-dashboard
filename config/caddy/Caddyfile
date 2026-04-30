@@ -1,0 +1,39 @@
+{
+	admin off
+	auto_https off
+}
+
+http://127.0.0.1:{$MONITOR_PROXY_PORT:8080} {
+	encode zstd gzip
+
+	redir /hermes /hermes/
+	handle_path /hermes/* {
+		reverse_proxy 127.0.0.1:{$HERMES_DASHBOARD_PORT:9119}
+	}
+
+	redir /uptime /uptime/
+	handle_path /uptime/* {
+		reverse_proxy 127.0.0.1:{$UPTIME_KUMA_PORT:3001}
+	}
+
+	redir /logs /logs/
+	handle /logs/* {
+		reverse_proxy 127.0.0.1:{$DOZZLE_PORT:9999}
+	}
+
+	redir /grafana /grafana/
+	handle /grafana/* {
+		reverse_proxy 127.0.0.1:{$GRAFANA_PORT:3000}
+	}
+
+	redir /prometheus /prometheus/
+	handle /prometheus/* {
+		reverse_proxy 127.0.0.1:{$PROMETHEUS_PORT:9090}
+	}
+
+	respond /healthz "ok" 200
+
+	handle {
+		reverse_proxy 127.0.0.1:{$HERMES_DASHBOARD_PORT:9119}
+	}
+}

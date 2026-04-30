@@ -1,1 +1,45 @@
-# hermes-dashboard
+# Hermes Dashboard
+
+Docker-based Hermes Agent gateway, dashboard, and monitoring baseline for a workstation, mini PC, or Raspberry Pi-class host.
+
+## What This Runs
+
+- Hermes gateway for Discord chat operations.
+- Hermes dashboard on `127.0.0.1:9119`.
+- Lightweight monitoring with Uptime Kuma, Dozzle, and a Caddy monitor proxy.
+- Optional full metrics with Prometheus, Grafana, node-exporter, and cAdvisor.
+- Tailscale Serve access through a single localhost proxy.
+
+## Quickstart
+
+```bash
+make setup
+docker compose --profile monitoring-lite up -d
+```
+
+Edit `.env` before real use:
+
+- `DISCORD_BOT_TOKEN`
+- `DISCORD_ALLOWED_USERS`
+- `DISCORD_HOME_CHANNEL`
+- `OLLAMA_BASE_URL`
+- `HERMES_MODEL`
+
+## Tailscale Access
+
+The monitoring proxy binds locally. Publish it only to your tailnet:
+
+```bash
+tailscale serve http://127.0.0.1:8080
+```
+
+Open the Tailscale HTTPS URL and use `/` or `/hermes`, `/uptime`, or `/logs`.
+
+## Development Rules
+
+- Create a GitHub Issue before every development task.
+- Use TDD: failing test, minimal implementation, refactor.
+- Use Agent team roles for non-trivial work: orchestrator, requirements, explorer, workers, reviewer.
+- Keep runtime state and secrets out of git.
+
+See [docs/runbook.md](docs/runbook.md) for operations, monitoring, Raspberry Pi / mini PC notes, and failure handling.
