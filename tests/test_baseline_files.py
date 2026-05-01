@@ -14,6 +14,10 @@ def test_compose_defines_hermes_monitoring_and_profiles():
     assert {"hermes-gateway", "hermes-dashboard", "uptime-kuma", "dozzle", "monitor-proxy"} <= set(services)
 
     assert services["hermes-gateway"]["restart"] == "unless-stopped"
+    assert services["hermes-gateway"]["healthcheck"]["test"] == [
+        "CMD-SHELL",
+        "/opt/hermes/.venv/bin/hermes status >/tmp/hermes-status.out 2>&1",
+    ]
     assert services["hermes-gateway"]["env_file"] == [".env"]
     assert "./.env:/opt/data/.env:ro" in services["hermes-gateway"]["volumes"]
     assert services["hermes-dashboard"]["command"] == [
@@ -24,6 +28,7 @@ def test_compose_defines_hermes_monitoring_and_profiles():
         "9119",
         "--no-open",
     ]
+    assert services["hermes-dashboard"]["healthcheck"]["test"][1].startswith("python3 - <<'PY'")
     assert services["monitor-proxy"]["network_mode"] == "host"
     assert services["dozzle"]["profiles"] == ["monitoring-lite"]
     assert services["uptime-kuma"]["profiles"] == ["monitoring-lite"]
@@ -41,6 +46,8 @@ def test_compose_has_optional_full_metrics_stack():
     assert "--web.external-url=/prometheus/" in services["prometheus"]["command"]
     assert "--web.route-prefix=/prometheus" in services["prometheus"]["command"]
     assert services["grafana"]["environment"]["GF_SECURITY_ADMIN_PASSWORD"].startswith("${GRAFANA_ADMIN_PASSWORD:?")
+    assert services["grafana"]["environment"]["GF_SERVER_DOMAIN"] == "${TAILSCALE_HOSTNAME:-hermes-dashboard}"
+    assert services["grafana"]["environment"]["GF_SERVER_ROOT_URL"] == "https://${TAILSCALE_HOSTNAME:-hermes-dashboard}/grafana/"
 
 
 def test_env_example_documents_discord_ollama_and_tailscale_defaults():
@@ -83,11 +90,17 @@ def test_runbook_covers_issue_first_tdd_agent_team_monitoring_and_tailscale():
         "uptime kuma",
         "dozzle",
         "tailscale serve",
-        "raspberry pi",
+        "64-bit raspberry pi",
         "mini pc",
         "tailnet acl",
     ]:
         assert phrase in runbook
+
+
+def test_make_tailscale_serve_uses_configured_monitor_port():
+    makefile = (ROOT / "Makefile").read_text()
+
+    assert "tailscale serve http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}" in makefile
 
 
 def test_caddy_preserves_subpaths_for_apps_that_need_them():

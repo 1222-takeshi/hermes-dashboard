@@ -1,6 +1,6 @@
 # Hermes Dashboard
 
-Docker-based Hermes Agent gateway, dashboard, and monitoring baseline for a workstation, mini PC, or Raspberry Pi-class host.
+Docker-based Hermes Agent gateway, dashboard, and monitoring baseline for a workstation, mini PC, or 64-bit Raspberry Pi-class host.
 
 ## What This Runs
 
@@ -30,7 +30,7 @@ Edit `.env` before real use:
 The monitoring proxy binds locally. Publish it only to your tailnet:
 
 ```bash
-tailscale serve http://127.0.0.1:8080
+make tailscale-serve
 ```
 
 Open the Tailscale HTTPS URL and use `/` or `/hermes`, `/uptime`, or `/logs`.

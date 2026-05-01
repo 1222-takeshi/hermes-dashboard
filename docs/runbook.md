@@ -1,6 +1,6 @@
 # Hermes Dashboard Runbook
 
-This runbook keeps Hermes Agent usable as a Docker-based development and operations hub from a workstation, mini PC, or Raspberry Pi-class host.
+This runbook keeps Hermes Agent usable as a Docker-based development and operations hub from a workstation, mini PC, or 64-bit Raspberry Pi-class host.
 
 ## Development Policy
 
@@ -97,8 +97,10 @@ Tailscale is the network boundary, not a replacement for least-privilege access.
 3. Serve the localhost proxy into the tailnet:
 
 ```bash
-tailscale serve http://127.0.0.1:8080
+make tailscale-serve
 ```
+
+`make tailscale-serve` reads `MONITOR_PROXY_PORT` from `.env`, so it follows custom local port assignments.
 
 Then open the Tailscale-provided HTTPS URL and use:
 
@@ -120,6 +122,7 @@ Minimum tailnet ACL intent:
 
 ## Raspberry Pi / Mini PC Notes
 
+- Use a 64-bit OS on Raspberry Pi. The pinned Hermes and cAdvisor images support `linux/amd64` and `linux/arm64`, not 32-bit `linux/arm/v7`.
 - Prefer Hermes gateway, Hermes dashboard, Uptime Kuma, Dozzle, and Caddy on Raspberry Pi.
 - Run the LLM on a stronger host if the Raspberry Pi cannot serve the model locally.
 - Point `OLLAMA_BASE_URL` to a LAN or tailnet Ollama endpoint when the LLM is remote.

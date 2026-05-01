@@ -41,4 +41,4 @@ backup:
 	docker compose run --rm hermes-gateway backup --quick --output /workspace/backups/hermes-quick-backup.zip
 
 tailscale-serve:
-	tailscale serve http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}
+	. ./.env 2>/dev/null || true; tailscale serve http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}

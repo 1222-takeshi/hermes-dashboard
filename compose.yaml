@@ -24,7 +24,7 @@ services:
       HERMES_INFERENCE_MODEL: "${HERMES_MODEL:-gemma4:e4b}"
     command: ["gateway", "run"]
     healthcheck:
-      test: ["CMD-SHELL", "hermes status >/tmp/hermes-status.out 2>&1"]
+      test: ["CMD-SHELL", "/opt/hermes/.venv/bin/hermes status >/tmp/hermes-status.out 2>&1"]
       interval: 60s
       timeout: 20s
       retries: 3
@@ -55,7 +55,7 @@ services:
       - "9119"
       - --no-open
     healthcheck:
-      test: ["CMD-SHELL", "python - <<'PY'\nimport urllib.request\nurllib.request.urlopen('http://127.0.0.1:9119', timeout=5).read(128)\nPY"]
+      test: ["CMD-SHELL", "python3 - <<'PY'\nimport urllib.request\nurllib.request.urlopen('http://127.0.0.1:9119', timeout=5).read(128)\nPY"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -131,7 +131,8 @@ services:
     environment:
       GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
       GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:?Set GRAFANA_ADMIN_PASSWORD in .env before enabling monitoring-full}"
-      GF_SERVER_ROOT_URL: "%(protocol)s://%(domain)s/grafana/"
+      GF_SERVER_DOMAIN: "${TAILSCALE_HOSTNAME:-hermes-dashboard}"
+      GF_SERVER_ROOT_URL: "https://${TAILSCALE_HOSTNAME:-hermes-dashboard}/grafana/"
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
 
   node-exporter:
