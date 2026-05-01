@@ -22,15 +22,18 @@ def test_compose_defines_hermes_monitoring_and_profiles():
     ]
     assert services["hermes-gateway"]["env_file"] == [".env"]
     assert "./.env:/opt/data/.env:ro" in services["hermes-gateway"]["volumes"]
+    assert "./:/workspace:ro" in services["hermes-gateway"]["volumes"]
     assert services["hermes-dashboard"]["command"] == [
         "dashboard",
         "--host",
         "127.0.0.1",
         "--port",
-        "9119",
+        "${HERMES_DASHBOARD_PORT:-9119}",
         "--no-open",
     ]
-    assert services["hermes-dashboard"]["healthcheck"]["test"][1].startswith("python3 - <<'PY'")
+    dashboard_healthcheck = services["hermes-dashboard"]["healthcheck"]["test"][1]
+    assert dashboard_healthcheck.startswith("python3 - <<'PY'")
+    assert "HERMES_DASHBOARD_PORT" in dashboard_healthcheck
     assert services["monitor-proxy"]["network_mode"] == "host"
     assert "healthcheck" in services["monitor-proxy"]
     assert services["dozzle"]["profiles"] == ["monitoring-lite"]
@@ -161,12 +164,33 @@ def test_lite_compose_config_works_with_env_example():
 
 def test_config_full_preflight_requires_grafana_root_url():
     result = subprocess.run(
-        ["make", "config-full"],
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            ".env.example",
+            "--profile",
+            "monitoring-lite",
+            "--profile",
+            "monitoring-full",
+            "config",
+            "--quiet",
+        ],
         cwd=ROOT,
         text=True,
         capture_output=True,
         check=False,
-        env={"PATH": "/usr/local/bin:/usr/bin:/bin", "GRAFANA_ROOT_URL": ""},
+        env={
+            "PATH": "/usr/local/bin:/usr/bin:/bin",
+            "GRAFANA_ROOT_URL": "https://hermes-dashboard.example.ts.net/grafana/",
+            "GRAFANA_ADMIN_PASSWORD": "test-only-password",
+        },
     )
 
-    assert result.returncode != 0
+    assert result.returncode == 0, result.stderr
+
+
+def test_make_config_full_requires_grafana_root_url_without_runtime_setup():
+    makefile = (ROOT / "Makefile").read_text()
+
+    assert 'test -n "$${GRAFANA_ROOT_URL}" && test -n "$${GRAFANA_ADMIN_PASSWORD}"' in makefile

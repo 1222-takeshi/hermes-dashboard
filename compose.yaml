@@ -14,7 +14,7 @@ services:
     volumes:
       - ./data/hermes:/opt/data
       - ./.env:/opt/data/.env:ro
-      - ./:/workspace:rw
+      - ./:/workspace:ro
     environment:
       HERMES_UID: "${HERMES_UID:-1000}"
       HERMES_GID: "${HERMES_GID:-1000}"
@@ -52,10 +52,10 @@ services:
       - --host
       - 127.0.0.1
       - --port
-      - "9119"
+      - "${HERMES_DASHBOARD_PORT:-9119}"
       - --no-open
     healthcheck:
-      test: ["CMD-SHELL", "python3 - <<'PY'\nimport urllib.request\nurllib.request.urlopen('http://127.0.0.1:9119', timeout=5).read(128)\nPY"]
+      test: ["CMD-SHELL", "python3 - <<'PY'\nimport os\nimport urllib.request\nport = os.environ.get('HERMES_DASHBOARD_PORT', '9119')\nurllib.request.urlopen(f'http://127.0.0.1:{port}', timeout=5).read(128)\nPY"]
       interval: 60s
       timeout: 10s
       retries: 3
