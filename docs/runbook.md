@@ -52,8 +52,11 @@ docker compose --profile monitoring-lite up -d
 Start full metrics on mini PC-class hardware:
 
 ```bash
+GRAFANA_ROOT_URL=https://<your-tailscale-serve-name>/grafana/
 docker compose --profile monitoring-lite --profile monitoring-full up -d
 ```
+
+Set `GRAFANA_ROOT_URL` in `.env` to the exact Tailscale Serve HTTPS URL ending in `/grafana/`. Do not use only the bare host name, because Grafana generates absolute redirects and asset URLs from this value.
 
 Use `monitoring-full` sparingly on Raspberry Pi. Keep `PROMETHEUS_RETENTION=1d` or `3d` if disk or memory pressure is visible.
 

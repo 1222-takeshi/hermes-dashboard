@@ -46,8 +46,9 @@ def test_compose_has_optional_full_metrics_stack():
     assert "--web.external-url=/prometheus/" in services["prometheus"]["command"]
     assert "--web.route-prefix=/prometheus" in services["prometheus"]["command"]
     assert services["grafana"]["environment"]["GF_SECURITY_ADMIN_PASSWORD"].startswith("${GRAFANA_ADMIN_PASSWORD:?")
-    assert services["grafana"]["environment"]["GF_SERVER_DOMAIN"] == "${TAILSCALE_HOSTNAME:-hermes-dashboard}"
-    assert services["grafana"]["environment"]["GF_SERVER_ROOT_URL"] == "https://${TAILSCALE_HOSTNAME:-hermes-dashboard}/grafana/"
+    assert services["grafana"]["environment"]["GF_SERVER_ROOT_URL"] == "${GRAFANA_ROOT_URL:-}"
+    assert "Set GRAFANA_ROOT_URL" in services["grafana"]["command"][0]
+    assert "exec /run.sh" in services["grafana"]["command"][0]
 
 
 def test_env_example_documents_discord_ollama_and_tailscale_defaults():
@@ -62,6 +63,7 @@ def test_env_example_documents_discord_ollama_and_tailscale_defaults():
         "MONITOR_PROXY_PORT=8080",
         "TAILSCALE_HOSTNAME=hermes-dashboard",
         "GRAFANA_ADMIN_PASSWORD=",
+        "GRAFANA_ROOT_URL=",
     ]:
         assert key in env_example
 
@@ -101,6 +103,13 @@ def test_make_tailscale_serve_uses_configured_monitor_port():
     makefile = (ROOT / "Makefile").read_text()
 
     assert "tailscale serve http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}" in makefile
+
+
+def test_prometheus_self_scrape_matches_subpath_route_prefix():
+    prometheus = yaml.safe_load((ROOT / "config" / "prometheus" / "prometheus.yml").read_text())
+    jobs = {job["job_name"]: job for job in prometheus["scrape_configs"]}
+
+    assert jobs["prometheus"]["metrics_path"] == "/prometheus/metrics"
 
 
 def test_caddy_preserves_subpaths_for_apps_that_need_them():

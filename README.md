@@ -35,6 +35,8 @@ make tailscale-serve
 
 Open the Tailscale HTTPS URL and use `/` or `/hermes`, `/uptime`, or `/logs`.
 
+For the optional Grafana profile, set `GRAFANA_ROOT_URL` in `.env` to the exact Tailscale HTTPS URL ending in `/grafana/` before running `monitoring-full`.
+
 ## Development Rules
 
 - Create a GitHub Issue before every development task.

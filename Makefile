@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup dev-setup test config up up-lite up-full down logs doctor backup tailscale-serve
+.PHONY: setup dev-setup test config config-full up up-lite up-full down logs doctor backup tailscale-serve
 
 setup:
 	bash scripts/init-env.sh
@@ -16,7 +16,10 @@ test: dev-setup
 	PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 $(PY) -m pytest -q
 
 config: setup
-	docker compose --profile monitoring-lite --profile monitoring-full config >/dev/null
+	docker compose --profile monitoring-lite config >/dev/null
+
+config-full: setup
+	. ./.env; test -n "$${GRAFANA_ROOT_URL}"; docker compose --profile monitoring-lite --profile monitoring-full config >/dev/null
 
 up:
 	docker compose up -d hermes-gateway hermes-dashboard
