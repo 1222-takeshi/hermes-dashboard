@@ -11,11 +11,6 @@ http://127.0.0.1:{$MONITOR_PROXY_PORT:8080} {
 		reverse_proxy 127.0.0.1:{$HERMES_DASHBOARD_PORT:9119}
 	}
 
-	redir /uptime /uptime/
-	handle_path /uptime/* {
-		reverse_proxy 127.0.0.1:{$UPTIME_KUMA_PORT:3001}
-	}
-
 	redir /logs /logs/
 	handle /logs/* {
 		reverse_proxy 127.0.0.1:{$DOZZLE_PORT:9999}

@@ -108,12 +108,17 @@ make tailscale-serve
 Then open the Tailscale-provided HTTPS URL and use:
 
 - `/` or `/hermes` for Hermes dashboard.
-- `/uptime` for Uptime Kuma.
 - `/logs` for Dozzle.
 - `/grafana` for Grafana when `monitoring-full` is enabled.
 - `/prometheus` for Prometheus when `monitoring-full` is enabled.
 
-If a third-party UI has trouble behind a path prefix, temporarily point Tailscale Serve at that localhost port directly, for example `tailscale serve http://127.0.0.1:3001` for Uptime Kuma.
+Uptime Kuma does not support subdirectory hosting. To inspect Uptime Kuma through Tailscale, temporarily serve its localhost port at the Tailscale URL root:
+
+```bash
+make tailscale-serve-uptime
+```
+
+After inspecting Uptime Kuma, run `make tailscale-serve` again to restore the Hermes/Dozzle monitor proxy view.
 
 Keep Tailscale Funnel disabled. If remote shell access is needed, use Tailscale SSH separately and restrict it with tailnet ACLs.
 

@@ -74,10 +74,15 @@ services:
     environment:
       MONITOR_PROXY_PORT: "${MONITOR_PROXY_PORT:-8080}"
       HERMES_DASHBOARD_PORT: "${HERMES_DASHBOARD_PORT:-9119}"
-      UPTIME_KUMA_PORT: "${UPTIME_KUMA_PORT:-3001}"
       DOZZLE_PORT: "${DOZZLE_PORT:-9999}"
       GRAFANA_PORT: "${GRAFANA_PORT:-3000}"
       PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}/healthz >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   uptime-kuma:
     image: louislam/uptime-kuma:1.23.16
@@ -88,6 +93,12 @@ services:
       - "127.0.0.1:${UPTIME_KUMA_PORT:-3001}:3001"
     volumes:
       - uptime-kuma-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001 >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   dozzle:
     image: amir20/dozzle:v8.14.7
@@ -101,6 +112,12 @@ services:
     environment:
       DOZZLE_NO_ANALYTICS: "true"
       DOZZLE_BASE: /logs
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   prometheus:
     image: prom/prometheus:v3.8.0
@@ -118,6 +135,12 @@ services:
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-7d}
       - --web.external-url=/prometheus/
       - --web.route-prefix=/prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/prometheus/-/healthy >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   grafana:
     image: grafana/grafana:12.3.1
@@ -141,6 +164,12 @@ services:
           exit 1
         }
         exec /run.sh
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/grafana/api/health >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   node-exporter:
     image: prom/node-exporter:v1.10.2
@@ -152,6 +181,12 @@ services:
       - --path.rootfs=/host
     volumes:
       - /:/host:ro,rslave
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9100/metrics >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   cadvisor:
     image: ghcr.io/google/cadvisor:v0.53.0
@@ -166,6 +201,12 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/metrics >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
 volumes:
   caddy-data:

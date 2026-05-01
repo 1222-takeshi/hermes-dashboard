@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup dev-setup test config config-full up up-lite up-full down logs doctor backup tailscale-serve
+.PHONY: setup dev-setup test config config-full up up-lite up-full down logs doctor backup tailscale-serve tailscale-serve-uptime
 
 setup:
 	bash scripts/init-env.sh
@@ -45,3 +45,6 @@ backup:
 
 tailscale-serve:
 	. ./.env 2>/dev/null || true; tailscale serve http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}
+
+tailscale-serve-uptime:
+	. ./.env 2>/dev/null || true; tailscale serve http://127.0.0.1:$${UPTIME_KUMA_PORT:-3001}

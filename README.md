@@ -33,7 +33,9 @@ The monitoring proxy binds locally. Publish it only to your tailnet:
 make tailscale-serve
 ```
 
-Open the Tailscale HTTPS URL and use `/` or `/hermes`, `/uptime`, or `/logs`.
+Open the Tailscale HTTPS URL and use `/` or `/hermes` for Hermes and `/logs` for Dozzle.
+
+Uptime Kuma does not support subdirectory hosting. To inspect its UI through Tailscale, run `make tailscale-serve-uptime` and open the Tailscale URL root for that temporary view.
 
 For the optional Grafana profile, set `GRAFANA_ROOT_URL` in `.env` to the exact Tailscale HTTPS URL ending in `/grafana/` before running `monitoring-full`.
 

@@ -30,8 +30,11 @@ def test_compose_defines_hermes_monitoring_and_profiles():
     ]
     assert services["hermes-dashboard"]["healthcheck"]["test"][1].startswith("python3 - <<'PY'")
     assert services["monitor-proxy"]["network_mode"] == "host"
+    assert "healthcheck" in services["monitor-proxy"]
     assert services["dozzle"]["profiles"] == ["monitoring-lite"]
     assert services["uptime-kuma"]["profiles"] == ["monitoring-lite"]
+    assert "healthcheck" in services["uptime-kuma"]
+    assert services["dozzle"]["healthcheck"]["test"] == ["CMD", "/dozzle", "healthcheck"]
 
 
 def test_compose_has_optional_full_metrics_stack():
@@ -49,6 +52,8 @@ def test_compose_has_optional_full_metrics_stack():
     assert services["grafana"]["environment"]["GF_SERVER_ROOT_URL"] == "${GRAFANA_ROOT_URL:-}"
     assert "Set GRAFANA_ROOT_URL" in services["grafana"]["command"][0]
     assert "exec /run.sh" in services["grafana"]["command"][0]
+    for service_name in ["prometheus", "grafana", "node-exporter", "cadvisor"]:
+        assert "healthcheck" in services[service_name]
 
 
 def test_env_example_documents_discord_ollama_and_tailscale_defaults():
@@ -103,6 +108,7 @@ def test_make_tailscale_serve_uses_configured_monitor_port():
     makefile = (ROOT / "Makefile").read_text()
 
     assert "tailscale serve http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}" in makefile
+    assert "tailscale serve http://127.0.0.1:$${UPTIME_KUMA_PORT:-3001}" in makefile
 
 
 def test_prometheus_self_scrape_matches_subpath_route_prefix():
@@ -115,7 +121,15 @@ def test_prometheus_self_scrape_matches_subpath_route_prefix():
 def test_caddy_preserves_subpaths_for_apps_that_need_them():
     caddyfile = (ROOT / "config" / "caddy" / "Caddyfile").read_text()
 
+    assert "/uptime" not in caddyfile
     assert "handle /logs/*" in caddyfile
     assert "handle /grafana/*" in caddyfile
     assert "handle /prometheus/*" in caddyfile
     assert "handle_path /prometheus/*" not in caddyfile
+
+
+def test_env_setup_hardens_secret_file_permissions():
+    init_script = (ROOT / "scripts" / "init-env.sh").read_text()
+
+    assert "umask 077" in init_script
+    assert "chmod 600 .env" in init_script
