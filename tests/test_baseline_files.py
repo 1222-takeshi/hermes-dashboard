@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import subprocess
+
 import yaml
 
 
@@ -48,9 +50,10 @@ def test_compose_has_optional_full_metrics_stack():
     assert services["cadvisor"]["image"] == "ghcr.io/google/cadvisor:v0.53.0"
     assert "--web.external-url=/prometheus/" in services["prometheus"]["command"]
     assert "--web.route-prefix=/prometheus" in services["prometheus"]["command"]
-    assert services["grafana"]["environment"]["GF_SECURITY_ADMIN_PASSWORD"].startswith("${GRAFANA_ADMIN_PASSWORD:?")
+    assert services["grafana"]["environment"]["GF_SECURITY_ADMIN_PASSWORD"] == "${GRAFANA_ADMIN_PASSWORD:-}"
     assert services["grafana"]["environment"]["GF_SERVER_ROOT_URL"] == "${GRAFANA_ROOT_URL:-}"
     assert "Set GRAFANA_ROOT_URL" in services["grafana"]["command"][0]
+    assert "Set GRAFANA_ADMIN_PASSWORD" in services["grafana"]["command"][0]
     assert "exec /run.sh" in services["grafana"]["command"][0]
     for service_name in ["prometheus", "grafana", "node-exporter", "cadvisor"]:
         assert "healthcheck" in services[service_name]
@@ -133,3 +136,37 @@ def test_env_setup_hardens_secret_file_permissions():
 
     assert "umask 077" in init_script
     assert "chmod 600 .env" in init_script
+
+
+def test_lite_compose_config_works_with_env_example():
+    result = subprocess.run(
+        [
+            "docker",
+            "compose",
+            "--env-file",
+            ".env.example",
+            "--profile",
+            "monitoring-lite",
+            "config",
+            "--quiet",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+
+
+def test_config_full_preflight_requires_grafana_root_url():
+    result = subprocess.run(
+        ["make", "config-full"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+        env={"PATH": "/usr/local/bin:/usr/bin:/bin", "GRAFANA_ROOT_URL": ""},
+    )
+
+    assert result.returncode != 0

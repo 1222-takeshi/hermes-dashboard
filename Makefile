@@ -19,7 +19,7 @@ config: setup
 	docker compose --profile monitoring-lite config >/dev/null
 
 config-full: setup
-	. ./.env; test -n "$${GRAFANA_ROOT_URL}"; docker compose --profile monitoring-lite --profile monitoring-full config >/dev/null
+	. ./.env; test -n "$${GRAFANA_ROOT_URL}" && test -n "$${GRAFANA_ADMIN_PASSWORD}" && docker compose --profile monitoring-lite --profile monitoring-full config >/dev/null
 
 up:
 	docker compose up -d hermes-gateway hermes-dashboard
