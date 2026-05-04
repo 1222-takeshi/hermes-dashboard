@@ -1,7 +1,7 @@
 PY := .venv/bin/python
 PIP := .venv/bin/pip
 
-.PHONY: setup dev-setup test config config-full up up-lite up-full down logs doctor backup tailscale-serve tailscale-serve-uptime
+.PHONY: setup dev-setup test config config-full check-channel-routing up up-lite up-full down logs doctor backup tailscale-serve tailscale-serve-uptime
 
 setup:
 	bash scripts/init-env.sh
@@ -20,6 +20,9 @@ config: setup
 
 config-full: setup
 	. ./.env; test -n "$${GRAFANA_ROOT_URL}" && test -n "$${GRAFANA_ADMIN_PASSWORD}" && docker compose --profile monitoring-lite --profile monitoring-full config >/dev/null
+
+check-channel-routing: dev-setup setup
+	$(PY) scripts/check-channel-routing.py
 
 up:
 	docker compose up -d hermes-gateway hermes-dashboard

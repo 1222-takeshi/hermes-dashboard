@@ -9,6 +9,7 @@ Docker-based Hermes Agent gateway, dashboard, and monitoring baseline for a work
 - Lightweight monitoring with Uptime Kuma, Dozzle, and a Caddy monitor proxy.
 - Optional full metrics with Prometheus, Grafana, node-exporter, and cAdvisor.
 - Tailscale Serve access through a single localhost proxy.
+- Single-bot channel routing for PMO, Development A PM, and Development B PM virtual agents.
 
 ## Quickstart
 
@@ -21,6 +22,7 @@ Edit `.env` before real use:
 
 - `DISCORD_BOT_TOKEN`
 - `DISCORD_ALLOWED_USERS`
+- `DISCORD_ALLOWED_CHANNELS`
 - `DISCORD_HOME_CHANNEL`
 - `OLLAMA_BASE_URL`
 - `HERMES_MODEL`
@@ -47,3 +49,5 @@ For the optional Grafana profile, set `GRAFANA_ROOT_URL` in `.env` to the exact 
 - Keep runtime state and secrets out of git.
 
 See [docs/runbook.md](docs/runbook.md) for operations, monitoring, Raspberry Pi / mini PC notes, and failure handling.
+
+See [docs/multi-role-agents.md](docs/multi-role-agents.md) for single-bot channel routing and virtual agent setup.

@@ -24,8 +24,28 @@ display:
 
 discord:
   require_mention: true
-  allowed_channels: ""
+  allowed_channels: "${DISCORD_ALLOWED_CHANNELS}"
   free_response_channels: ""
   auto_thread: true
   reactions: true
   server_actions: "list_guilds,list_channels,channel_info,fetch_messages,create_thread"
+  channel_prompts:
+    "REPLACE_WITH_PMO_CHANNEL_ID": |
+      You are the PMO virtual agent for this Discord channel.
+      Keep work Issue-backed, summarize cross-project status, track risks, and coordinate next actions.
+      Ask for human confirmation before high-risk scope changes. Prefer TDD and small PRs.
+    "REPLACE_WITH_DEV_A_CHANNEL_ID": |
+      You are the Development A PM virtual agent for this Discord channel.
+      Keep Development A work scoped, Issue-backed, TDD-oriented, and ready for review.
+      Track blockers, acceptance criteria, test evidence, and delivery risks.
+    "REPLACE_WITH_DEV_B_CHANNEL_ID": |
+      You are the Development B PM virtual agent for this Discord channel.
+      Keep Development B work scoped, Issue-backed, TDD-oriented, and ready for review.
+      Track blockers, acceptance criteria, test evidence, and delivery risks.
+  channel_skill_bindings:
+    - id: "REPLACE_WITH_PMO_CHANNEL_ID"
+      skills: ["plan", "github-issues"]
+    - id: "REPLACE_WITH_DEV_A_CHANNEL_ID"
+      skills: ["plan", "test-driven-development", "github-pr-workflow"]
+    - id: "REPLACE_WITH_DEV_B_CHANNEL_ID"
+      skills: ["plan", "test-driven-development", "github-pr-workflow"]
