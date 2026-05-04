@@ -1,0 +1,220 @@
+name: hermes-dashboard
+
+services:
+  hermes-gateway:
+    image: ${HERMES_IMAGE:-nousresearch/hermes-agent:latest}
+    container_name: hermes-gateway
+    network_mode: host
+    restart: unless-stopped
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env
+    volumes:
+      - ./data/hermes:/opt/data
+      - ./.env:/opt/data/.env:ro
+      - ./:/workspace:ro
+    environment:
+      HERMES_UID: "${HERMES_UID:-1000}"
+      HERMES_GID: "${HERMES_GID:-1000}"
+      HERMES_HOME: /opt/data
+      MESSAGING_CWD: /workspace
+      OLLAMA_BASE_URL: "${OLLAMA_BASE_URL:-http://127.0.0.1:11436}"
+      HERMES_INFERENCE_MODEL: "${HERMES_MODEL:-gemma4:e4b}"
+    command: ["gateway", "run"]
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/hermes/.venv/bin/hermes status >/tmp/hermes-status.out 2>&1"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+      start_period: 30s
+
+  hermes-dashboard:
+    image: ${HERMES_IMAGE:-nousresearch/hermes-agent:latest}
+    container_name: hermes-dashboard
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - hermes-gateway
+    env_file:
+      - .env
+    volumes:
+      - ./data/hermes:/opt/data
+      - ./.env:/opt/data/.env:ro
+    environment:
+      HERMES_UID: "${HERMES_UID:-1000}"
+      HERMES_GID: "${HERMES_GID:-1000}"
+      HERMES_HOME: /opt/data
+      GATEWAY_HEALTH_URL: http://127.0.0.1:8642
+    command:
+      - dashboard
+      - --host
+      - 127.0.0.1
+      - --port
+      - "${HERMES_DASHBOARD_PORT:-9119}"
+      - --no-open
+    healthcheck:
+      test: ["CMD-SHELL", "python3 - <<'PY'\nimport os\nimport urllib.request\nport = os.environ.get('HERMES_DASHBOARD_PORT', '9119')\nurllib.request.urlopen(f'http://127.0.0.1:{port}', timeout=5).read(128)\nPY"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  monitor-proxy:
+    image: caddy:2.10-alpine
+    container_name: hermes-monitor-proxy
+    network_mode: host
+    restart: unless-stopped
+    profiles: ["monitoring-lite", "monitoring-full"]
+    volumes:
+      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      MONITOR_PROXY_PORT: "${MONITOR_PROXY_PORT:-8080}"
+      HERMES_DASHBOARD_PORT: "${HERMES_DASHBOARD_PORT:-9119}"
+      DOZZLE_PORT: "${DOZZLE_PORT:-9999}"
+      GRAFANA_PORT: "${GRAFANA_PORT:-3000}"
+      PROMETHEUS_PORT: "${PROMETHEUS_PORT:-9090}"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:$${MONITOR_PROXY_PORT:-8080}/healthz >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1.23.16
+    container_name: hermes-uptime-kuma
+    restart: unless-stopped
+    profiles: ["monitoring-lite"]
+    ports:
+      - "127.0.0.1:${UPTIME_KUMA_PORT:-3001}:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3001 >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  dozzle:
+    image: amir20/dozzle:v8.14.7
+    container_name: hermes-dozzle
+    restart: unless-stopped
+    profiles: ["monitoring-lite"]
+    ports:
+      - "127.0.0.1:${DOZZLE_PORT:-9999}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      DOZZLE_NO_ANALYTICS: "true"
+      DOZZLE_BASE: /logs
+    healthcheck:
+      test: ["CMD", "/dozzle", "healthcheck"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  prometheus:
+    image: prom/prometheus:v3.8.0
+    container_name: hermes-prometheus
+    restart: unless-stopped
+    profiles: ["monitoring-full"]
+    ports:
+      - "127.0.0.1:${PROMETHEUS_PORT:-9090}:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-7d}
+      - --web.external-url=/prometheus/
+      - --web.route-prefix=/prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9090/prometheus/-/healthy >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    container_name: hermes-grafana
+    restart: unless-stopped
+    profiles: ["monitoring-full"]
+    ports:
+      - "127.0.0.1:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: "${GRAFANA_ADMIN_USER:-admin}"
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-}"
+      GF_SERVER_ROOT_URL: "${GRAFANA_ROOT_URL:-}"
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+    entrypoint: ["/bin/sh", "-lc"]
+    command:
+      - |
+        test -n "$${GF_SERVER_ROOT_URL}" || {
+          echo "Set GRAFANA_ROOT_URL to your Tailscale Serve HTTPS URL ending in /grafana/ before enabling monitoring-full" >&2
+          exit 1
+        }
+        test -n "$${GF_SECURITY_ADMIN_PASSWORD}" || {
+          echo "Set GRAFANA_ADMIN_PASSWORD before enabling monitoring-full" >&2
+          exit 1
+        }
+        exec /run.sh
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/grafana/api/health >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  node-exporter:
+    image: prom/node-exporter:v1.10.2
+    container_name: hermes-node-exporter
+    restart: unless-stopped
+    profiles: ["monitoring-full"]
+    pid: host
+    command:
+      - --path.rootfs=/host
+    volumes:
+      - /:/host:ro,rslave
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9100/metrics >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.53.0
+    container_name: hermes-cadvisor
+    restart: unless-stopped
+    profiles: ["monitoring-full"]
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/metrics >/dev/null"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  caddy-data:
+  caddy-config:
+  uptime-kuma-data:
+  prometheus-data:
+  grafana-data:
