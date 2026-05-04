@@ -20,7 +20,7 @@ def test_compose_defines_hermes_monitoring_and_profiles():
         "CMD-SHELL",
         "/opt/hermes/.venv/bin/hermes status >/tmp/hermes-status.out 2>&1",
     ]
-    assert services["hermes-gateway"]["env_file"] == [".env"]
+    assert services["hermes-gateway"]["env_file"] == [{"path": ".env", "required": False}]
     assert "./.env:/opt/data/.env:ro" in services["hermes-gateway"]["volumes"]
     assert "./:/workspace:ro" in services["hermes-gateway"]["volumes"]
     assert services["hermes-dashboard"]["command"] == [
@@ -68,6 +68,7 @@ def test_env_example_documents_discord_ollama_and_tailscale_defaults():
     for key in [
         "DISCORD_BOT_TOKEN=",
         "DISCORD_ALLOWED_USERS=",
+        "DISCORD_ALLOWED_CHANNELS=",
         "DISCORD_HOME_CHANNEL=",
         "OLLAMA_BASE_URL=http://127.0.0.1:11436",
         "HERMES_MODEL=gemma4:e4b",
@@ -148,6 +149,8 @@ def test_lite_compose_config_works_with_env_example():
             "compose",
             "--env-file",
             ".env.example",
+            "-f",
+            "compose.yaml",
             "--profile",
             "monitoring-lite",
             "config",
@@ -169,6 +172,8 @@ def test_config_full_preflight_requires_grafana_root_url():
             "compose",
             "--env-file",
             ".env.example",
+            "-f",
+            "compose.yaml",
             "--profile",
             "monitoring-lite",
             "--profile",
